@@ -1,0 +1,5 @@
+aug
+auth.db
+.augur-cache.json
+*.db
+.DS_Store
