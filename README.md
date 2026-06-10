@@ -36,8 +36,20 @@ cp aug /path/to/augur-auth-demo/
 is what makes `hash("s3cret")` line up between register and authenticate.
 
 ```sh
-OPENROUTER_API_KEY=sk-... ./aug auth_api.aug \
+OPENROUTER_API_KEY=sk-... ./aug main.aug \
   --oracle openrouter --model openai/gpt-4o-mini --remember
+```
+
+## Layout
+
+The program is split across files with Augur's `include`:
+
+```
+main.aug          # /// system note, includes the libs, starts the server
+routes.aug        # ritual handle(req) — register / authenticate / users
+lib/hash.aug      # ritual hash(pw)        — divined SHA-256
+lib/store.aug     # ritual store()         — the deterministic SQLite layer
+lib/auth.aug      # ritual valid(u, p)     — the divined auth middleware
 ```
 
 ## Endpoints
