@@ -9,7 +9,7 @@ ritual handle(req) {
     when method == "POST" and path == "/register" -> {
         summon hashed = hash(req["json"]["password"])
         certain {
-            commune with "sqlite://./auth.db"
+            commune with "mysql://augur:augur@127.0.0.1:3308/augur"
             inscribe {username: req["json"]["username"], hash: hashed} into users
         }
         give {status: 201, body: {registered: req["json"]["username"]}}
