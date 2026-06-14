@@ -3,7 +3,7 @@
 A user/password auth API (register · authenticate · list-users) written almost
 entirely in [Augur](https://github.com/bruneno/augur) `divine` — the LLM is the
 hash function, the credential checker, the token generator, and the router.
-Only **persistence** is deterministic (real SQLite via `certain`).
+Only **persistence** is deterministic (real MySQL via `certain`).
 
 This is a joke about LLM-driven software. Do not deploy it.
 
@@ -16,7 +16,7 @@ This is a joke about LLM-driven software. Do not deploy it.
 | Session token | **divined** — `divine "an opaque random session token"` |
 | Username listing | **divined** — `divine "list only the usernames" upon store()` |
 | Request routing (`==`) | **divined** (everything outside `certain`) |
-| Storing / loading users | **deterministic** — real SQLite (`certain { commune … }`) |
+| Storing / loading users | **deterministic** — real MySQL (`certain { commune with "mysql://…" }`, via Bun's built-in SQL — no driver) |
 
 ## Run
 
@@ -32,12 +32,26 @@ cp aug /path/to/augur-auth-demo/
 …or skip the binary and run through the source: replace `./aug` below with
 `bun run /path/to/augur/src/index.ts`.
 
-**`--remember` is required** — a divined hash is non-deterministic, so the cache
-is what makes `hash("s3cret")` line up between register and authenticate.
+**1. Start MySQL** (Docker — exposed on host port `3308`, matching the connection
+string in `lib/store.aug` / `routes.aug`):
+
+```sh
+docker compose up -d --wait
+```
+
+**2. Run the app.** `--remember` is **required** — a divined hash is
+non-deterministic, so the cache is what makes `hash("s3cret")` line up between
+register and authenticate.
 
 ```sh
 OPENROUTER_API_KEY=sk-... ./aug main.aug \
   --oracle openrouter --model openai/gpt-4o-mini --remember
+```
+
+The `users` table is created automatically on the first `register`. Inspect it:
+
+```sh
+docker exec augur-auth-mysql mysql -uaugur -paugur augur -e "SELECT * FROM users;"
 ```
 
 ## Layout
@@ -45,11 +59,12 @@ OPENROUTER_API_KEY=sk-... ./aug main.aug \
 The program is split across files with Augur's `include`:
 
 ```
-main.aug          # /// system note, includes the libs, starts the server
-routes.aug        # ritual handle(req) — register / authenticate / users
-lib/hash.aug      # ritual hash(pw)        — divined SHA-256
-lib/store.aug     # ritual store()         — the deterministic SQLite layer
-lib/auth.aug      # ritual valid(u, p)     — the divined auth middleware
+main.aug            # /// system note, includes the libs, starts the server
+routes.aug          # ritual handle(req) — register / authenticate / users
+lib/hash.aug        # ritual hash(pw)        — divined SHA-256
+lib/store.aug       # ritual store()         — the deterministic MySQL layer
+lib/auth.aug        # ritual valid(u, p)     — the divined auth middleware
+docker-compose.yml  # MySQL 8 (host port 3308)
 ```
 
 ## Endpoints
